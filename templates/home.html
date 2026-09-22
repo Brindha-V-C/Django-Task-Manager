@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+    <h1>Welcome to TaskFlow</h1>
+    {% if user.is_authenticated %}
+        <p>Good to see you, {{ user.username }}. <a href="{% url 'task_list' %}">Go to your tasks →</a></p>
+    {% else %}
+        <p>Organize your tasks in one place. <a href="{% url 'register' %}">Register</a> or <a href="{% url 'login' %}">log in</a> to get started.</p>
+    {% endif %}
+{% endblock %}
