@@ -13,9 +13,13 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 from pathlib import Path
 import socket
 from decouple import config
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+IS_AZURE = 'WEBSITE_HOSTNAME' in os.environ
 
 
 # Quick-start development settings - unsuitable for production
@@ -24,16 +28,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 from azure.identity import DefaultAzureCredential
 from azure.keyvault.secrets import SecretClient
 
-KEY_VAULT_URL = "https://taskflow-kv-brindha.vault.azure.net/"
+if IS_AZURE:
+    from azure.identity import DefaultAzureCredential
+    from azure.keyvault.secrets import SecretClient
 
-credential = DefaultAzureCredential()
-secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
+    KEY_VAULT_URL = "https://taskflow-kv-brindha.vault.azure.net/"
+    credential = DefaultAzureCredential()
+    secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
 
-def get_secret(name):
-    return secret_client.get_secret(name).value
+    def get_secret(name):
+        return secret_client.get_secret(name).value
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = get_secret('SECRET-KEY')
+    SECRET_KEY = get_secret('SECRET-KEY')
+    DB_NAME = get_secret('DB-NAME')
+    DB_USER = get_secret('DB-USER')
+    DB_PASSWORD = get_secret('DB-PASSWORD')
+    DB_HOST = get_secret('DB-HOST')
+else:
+    # Local dev (.env via decouple) or CI build steps like collectstatic —
+    # placeholders are safe here since no real DB connection is needed
+    SECRET_KEY = config('SECRET_KEY', default='ci-build-placeholder-not-for-production')
+    DB_NAME = config('DB_NAME', default='placeholder')
+    DB_USER = config('DB_USER', default='placeholder')
+    DB_PASSWORD = config('DB_PASSWORD', default='placeholder')
+    DB_HOST = config('DB_HOST', default='localhost')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -99,10 +117,10 @@ WSGI_APPLICATION = 'taskflow.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': get_secret('DB-NAME'),
-        'USER': get_secret('DB-USER'),
-        'PASSWORD': get_secret('DB-PASSWORD'),
-        'HOST': get_secret('DB-HOST'),
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
         'PORT': '5432',
         'OPTIONS': {'sslmode': 'require'},
     }
