@@ -20,13 +20,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+
+KEY_VAULT_URL = "https://taskflow-kv-brindha.vault.azure.net/"
+
+credential = DefaultAzureCredential()
+secret_client = SecretClient(vault_url=KEY_VAULT_URL, credential=credential)
+
+def get_secret(name):
+    return secret_client.get_secret(name).value
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = get_secret('SECRET-KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['taskflow-app-brindha-d9gsf4dndfb5fqdb.eastasia-01.azurewebsites.net', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['taskflow-app-brindha-d9gsf4dndfb5fqdb.eastasia-01.azurewebsites.net', 'localhost', '127.0.0.1','169.254.129.2',]
 
 
 # Application definition
@@ -81,10 +92,10 @@ WSGI_APPLICATION = 'taskflow.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
+        'NAME': get_secret('DB-NAME'),
+        'USER': get_secret('DB-USER'),
+        'PASSWORD': get_secret('DB-PASSWORD'),
+        'HOST': get_secret('DB-HOST'),
         'PORT': '5432',
         'OPTIONS': {'sslmode': 'require'},
     }
@@ -140,3 +151,32 @@ MAILERS = {
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://taskflow-app-brindha-d9gsf4dndfb5fqdb.eastasia-01.azurewebsites.net',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
